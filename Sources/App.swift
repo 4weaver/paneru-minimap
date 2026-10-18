@@ -18,6 +18,8 @@ struct BarConfig {
   var cellHeight: CGFloat = 6
   var unfocusedShade: CGFloat = 0.72
   var unfocusedWash: CGFloat = 0.18
+  var filter: String = "minimap"
+  var shape: String = "square"
 }
 
 var previewConfig = BarConfig()
@@ -40,7 +42,9 @@ func loadPreviewConfig() -> BarConfig {
     if let n = doubleValue(obj["cellHeight"]) { cfg.cellHeight = CGFloat(n) }
     if let n = doubleValue(obj["unfocusedShade"]) { cfg.unfocusedShade = CGFloat(n) }
     if let n = doubleValue(obj["unfocusedWash"]) { cfg.unfocusedWash = CGFloat(n) }
-  }
+    if let s = obj["filter"] as? String { cfg.filter = s }
+    if let s = obj["shape"] as? String { cfg.shape = s }
+    }
   return cfg
 }
 
@@ -92,11 +96,18 @@ final class BarView: NSView {
       let rect = slot.rect
       let focused = columns.first { $0.index == slot.index }?.focused == true
       if let shot = shots[slot.index], shot.width > 1, shot.height > 1 {
-        drawMinimapBlocks(
-          contentSlice(shot, slotAspect: rect.width / max(rect.height, 1)),
-          in: rect,
-          dimmed: !focused
-        )
+        let slice = contentSlice(shot, slotAspect: rect.width / max(rect.height, 1))
+        if previewConfig.filter == "minimap" {
+          drawMinimapBlocks(slice, in: rect, dimmed: !focused)
+        } else if let ctx = NSGraphicsContext.current?.cgContext {
+          ctx.saveGState()
+          ctx.clip(to: rect)
+          ctx.translateBy(x: rect.minX, y: rect.maxY)
+          ctx.scaleBy(x: rect.width / CGFloat(slice.width), y: -rect.height / CGFloat(slice.height))
+          ctx.interpolationQuality = .high
+          ctx.draw(slice, in: CGRect(x: 0, y: 0, width: slice.width, height: slice.height))
+          ctx.restoreGState()
+        }
         if !focused {
           NSColor.black.withAlphaComponent(previewConfig.unfocusedWash).setFill()
           rect.fill()
@@ -471,12 +482,18 @@ func drawMinimapBlocks(_ image: CGImage, in rect: CGRect, dimmed: Bool) {
       let l = 0.3 * r0 + 0.59 * g0 + 0.11 * b0
       if l < 0.08 { continue }
       NSColor(calibratedRed: r0 * shade, green: g0 * shade, blue: b0 * shade, alpha: 1).setFill()
-      NSRect(
+      let mark = NSRect(
         x: rect.minX + CGFloat(x) * cw + 0.5,
         y: rect.minY + CGFloat(y) * ch + 0.5,
         width: max(cw - 1, 1),
         height: max(ch - 1, 1)
-      ).fill()
+      )
+      if previewConfig.shape == "dot" {
+        let d = min(mark.width, mark.height)
+        NSBezierPath(ovalIn: NSRect(x: mark.midX - d / 2, y: mark.midY - d / 2, width: d, height: d)).fill()
+      } else {
+        mark.fill()
+      }
     }
   }
 }

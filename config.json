@@ -4,5 +4,7 @@
   "cellWidth": 9,
   "cellHeight": 6,
   "unfocusedShade": 0.72,
-  "unfocusedWash": 0.18
+  "unfocusedWash": 0.18,
+  "filter": "minimap",
+  "shape": "square"
 }
