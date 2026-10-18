@@ -6,17 +6,71 @@ One block per tiled column. The block is a top slice of that window, drawn as 9Ã
 
 ![paneru-minimap on the bottom of the display](docs/screenshot.png)
 
+Screen Recording permission is required before the cells show window content. The first launch prompts for it.
 
-Build:
+## Nix
 
 ```
-nix build .#paneru-minimap
+nix build github:4weaver/paneru-minimap
+./result/Contents/MacOS/paneru-minimap
 ```
 
-The output is an app bundle. The executable is `Contents/MacOS/paneru-minimap`. Screen Recording permission is required before the cells show window content.
+The output is an app bundle. The executable is `Contents/MacOS/paneru-minimap`. It links only system frameworks and `/usr/lib/swift`, so the bundle does not need the Nix store at runtime.
 
-Home Manager: import `homeManagerModules.default`, then set `programs.paneru-minimap.enable`. The module does nothing unless the host is Darwin.
+Home Manager: import `homeManagerModules.default`, then set `programs.paneru-minimap.enable`. The module does nothing unless the host is Darwin. It starts a launchd agent at login and restarts it if it dies.
 
+```nix
+{
+  inputs.paneru-minimap.url = "github:4weaver/paneru-minimap";
+}
+```
 
-Settings are `config.json` in the bundle, then `~/.config/paneru-minimap/config.json` if that file exists. Keys: `barHeight`, `screenInset`, `cellWidth`, `cellHeight`, `unfocusedShade`, `unfocusedWash`, `filter` (`none` or `minimap`), `shape` (`square` or `dot`, used by `minimap`), `sharing` (`readOnly` or `none`). `none` hides the bar from screenshots and screen share.
+Add `paneru-minimap.homeManagerModules.default` to `imports`, then:
 
+```nix
+programs.paneru-minimap.enable = true;
+```
+
+## Without Nix
+
+Copy the built bundle out of the store and open it:
+
+```
+cp -R $(nix build github:4weaver/paneru-minimap --print-out-paths) /Applications/Paneru-minimap.app
+open /Applications/Paneru-minimap.app
+```
+
+After that, Nix is not required to run it.
+
+To compile without Nix, the Xcode Command Line Tools must provide `swiftc` and `codesign`:
+
+```
+mkdir -p Paneru-minimap.app/Contents/MacOS Paneru-minimap.app/Contents/Resources
+cp config.json Paneru-minimap.app/Contents/Resources/config.json
+swiftc -O -parse-as-library \
+  -o Paneru-minimap.app/Contents/MacOS/paneru-minimap \
+  Sources/Layout.swift Sources/App.swift \
+  -framework AppKit -framework CoreGraphics
+codesign -f -s - -i com.inogai.paneru-minimap Paneru-minimap.app
+open Paneru-minimap.app
+```
+
+That bundle has no `Info.plist`. Add one if macOS does not show the app in the Screen Recording list. `LSUIElement` must be true, and `CFBundleIdentifier` must be `com.inogai.paneru-minimap`.
+
+## Settings
+
+`config.json` in the bundle, then `~/.config/paneru-minimap/config.json` if that file exists. Later files win.
+
+| key | default | |
+| --- | --- | --- |
+| `barHeight` | 64 | panel height, pt |
+| `screenInset` | 8 | gap above the bottom of the screen, pt |
+| `cellWidth` | 9 | minimap cell width, pt |
+| `cellHeight` | 6 | minimap cell height, pt |
+| `unfocusedShade` | 0.72 | dim on unfocused columns |
+| `unfocusedWash` | 0.18 | dark wash on unfocused columns |
+| `filter` | `minimap` | `none` or `minimap` |
+| `shape` | `square` | `square` or `dot`, used by `minimap` |
+| `sharing` | `readOnly` | `readOnly` shows the bar in screenshots and screen share; `none` hides it |
+
+Restart the process after changing the file. The file is read once at launch.
