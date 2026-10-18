@@ -6,17 +6,17 @@
   writeText,
 }:
 let
-  infoPlist = writeText "paneru-preview-Info.plist" ''
+  infoPlist = writeText "paneru-minimap-Info.plist" ''
     <?xml version="1.0" encoding="UTF-8"?>
     <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
     <plist version="1.0">
     <dict>
       <key>CFBundleIdentifier</key>
-      <string>com.github.inogai.paneru-preview</string>
+      <string>com.github.inogai.paneru-minimap</string>
       <key>CFBundleExecutable</key>
-      <string>paneru-preview</string>
+      <string>paneru-minimap</string>
       <key>CFBundleName</key>
-      <string>paneru-preview</string>
+      <string>paneru-minimap</string>
       <key>CFBundlePackageType</key>
       <string>APPL</string>
       <key>LSUIElement</key>
@@ -24,13 +24,13 @@ let
       <key>NSHighResolutionCapable</key>
       <true/>
       <key>NSScreenCaptureUsageDescription</key>
-      <string>paneru-preview shows the strip columns in the bar.</string>
+      <string>paneru-minimap shows the strip columns in the bar.</string>
     </dict>
     </plist>
   '';
 in
 stdenv.mkDerivation {
-  pname = "paneru-preview";
+  pname = "paneru-minimap";
   version = "0.1.0";
   src = ./.;
 
@@ -44,13 +44,13 @@ stdenv.mkDerivation {
   buildPhase = ''
     mkdir -p $out/Contents/MacOS
     swiftc -O -parse-as-library -sdk "$SDKROOT" \
-      -o $out/Contents/MacOS/paneru-preview \
+      -o $out/Contents/MacOS/paneru-minimap \
       Sources/Layout.swift Sources/App.swift \
       -framework AppKit -framework CoreGraphics
     cp ${infoPlist} $out/Contents/Info.plist
     CODESIGN_ALLOCATE="${darwin.cctools}/bin/${darwin.cctools.targetPrefix}codesign_allocate" \
-      ${darwin.sigtool}/bin/codesign -f -s - -i com.github.inogai.paneru-preview \
-      $out/Contents/MacOS/paneru-preview
+      ${darwin.sigtool}/bin/codesign -f -s - -i com.github.inogai.paneru-minimap \
+      $out/Contents/MacOS/paneru-minimap
   '';
 
   doCheck = true;

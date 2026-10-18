@@ -15,7 +15,7 @@
     {
       packages = each (pkgs: {
         default = pkgs.callPackage ./package.nix { };
-        paneru-preview = pkgs.callPackage ./package.nix { };
+        paneru-minimap = pkgs.callPackage ./package.nix { };
       });
     };
 }

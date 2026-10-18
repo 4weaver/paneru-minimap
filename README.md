@@ -1,4 +1,4 @@
-# paneru-preview
+# paneru-minimap
 
 A Darwin menu-bar-less panel for the running paneru strip. It is a paneru client. It does not capture the desktop as a second status bar.
 
@@ -7,7 +7,7 @@ One block per tiled column. The block is a top slice of that window, drawn as 9Ã
 Build:
 
 ```
-nix build .#paneru-preview
+nix build .#paneru-minimap
 ```
 
-The output is an app bundle. The executable is `Contents/MacOS/paneru-preview`. Screen Recording permission is required before the cells show window content.
+The output is an app bundle. The executable is `Contents/MacOS/paneru-minimap`. Screen Recording permission is required before the cells show window content.

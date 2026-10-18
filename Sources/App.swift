@@ -134,7 +134,7 @@ final class App: NSObject, NSApplicationDelegate {
     panel.isOpaque = false
     panel.backgroundColor = .clear
     panel.hasShadow = false
-    panel.title = "paneru-preview"
+    panel.title = "paneru-minimap"
     panel.collectionBehavior = [.canJoinAllSpaces, .stationary, .ignoresCycle, .fullScreenAuxiliary]
     panel.isMovable = false
     bar.autoresizingMask = [.width, .height]
