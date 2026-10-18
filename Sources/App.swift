@@ -441,15 +441,18 @@ func captureShots(_ requests: [ShotRequest]) -> [Int: CGImage] {
     let members = grouped[x] ?? []
     let chosen = members.first(where: \.focused) ?? members.max(by: { $0.area < $1.area })
     guard let chosen else { continue }
-    guard let image = CGWindowListCreateImage(
-      .null,
-      .optionIncludingWindow,
-      chosen.id,
-      [.boundsIgnoreFraming, .nominalResolution]
-    ), image.width > 1, image.height > 1 else { continue }
+    guard let image = captureWindowImage(chosen.id), image.width > 1, image.height > 1 else { continue }
     shots[offset + 1] = image
   }
   return shots
+}
+
+func captureWindowImage(_ id: CGWindowID) -> CGImage? {
+  guard let sym = dlsym(UnsafeMutableRawPointer(bitPattern: -2), "CGWindowListCreateImage") else { return nil }
+  typealias Fn = @convention(c) (CGRect, UInt32, UInt32, UInt32) -> Unmanaged<CGImage>?
+  let fn = unsafeBitCast(sym, to: Fn.self)
+  let options = CGWindowImageOption.boundsIgnoreFraming.rawValue | CGWindowImageOption.nominalResolution.rawValue
+  return fn(.null, CGWindowListOption.optionIncludingWindow.rawValue, id, options)?.takeRetainedValue()
 }
 
 func drawMinimapBlocks(_ image: CGImage, in rect: CGRect, dimmed: Bool) {
