@@ -15,5 +15,8 @@ nix build .#paneru-minimap
 
 The output is an app bundle. The executable is `Contents/MacOS/paneru-minimap`. Screen Recording permission is required before the cells show window content.
 
+Home Manager: import `homeManagerModules.default`, then set `programs.paneru-minimap.enable`. The module does nothing unless the host is Darwin.
+
+
 Settings are `config.json` in the bundle, then `~/.config/paneru-minimap/config.json` if that file exists. Keys: `barHeight`, `screenInset`, `cellWidth`, `cellHeight`, `unfocusedShade`, `unfocusedWash`, `filter` (`none` or `minimap`), `shape` (`square` or `dot`, used by `minimap`), `sharing` (`readOnly` or `none`). `none` hides the bar from screenshots and screen share.
 

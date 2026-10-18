@@ -17,5 +17,6 @@
         default = pkgs.callPackage ./package.nix { };
         paneru-minimap = pkgs.callPackage ./package.nix { };
       });
+      homeManagerModules.default = ./module.nix;
     };
 }
