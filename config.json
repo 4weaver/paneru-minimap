@@ -5,6 +5,7 @@
   "cellHeight": 6,
   "unfocusedShade": 0.72,
   "unfocusedWash": 0.18,
+  "displayFraction": 0.3,
   "filter": "minimap",
   "shape": "square",
   "sharing": "readOnly"

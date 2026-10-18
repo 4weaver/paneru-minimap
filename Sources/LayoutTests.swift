@@ -48,15 +48,27 @@ struct LayoutTests {
     expect(columns[1].appName == "Focused", "column 2 app name Focused")
 
     let display = DisplaySpan(minX: 0, width: 1000)
-    let map = barMap(columns: columns, display: display, barWidth: 210)
-    expect(map.domainMinX == -500, "domainMinX")
-    expect(map.domainWidth == 2100, "domainWidth")
-    expect(near(map.viewportBarX, 50), "viewport bar x")
-    expect(near(map.viewportBarWidth, 100), "viewport bar width")
-    expect(hitColumn(20, map: map, columns: columns) == 1, "hit 20")
-    expect(hitColumn(70, map: map, columns: columns) == 2, "hit 70")
-    expect(hitColumn(-1, map: map, columns: columns) == nil, "hit -1")
-    expect(hitColumn(10, map: map, columns: []) == nil, "empty columns")
+    let scale = barScale(
+      total: 3000,
+      displayWidth: display.width,
+      barWidth: 300,
+      displayFraction: 0.3
+    )
+    expect(near(scale, 0.09), "display takes 30% of the bar")
+    expect(near(1000 * scale, 90), "display span in the bar")
+
+    let wide = barScale(total: 5000, displayWidth: 1000, barWidth: 300, displayFraction: 0.3)
+    expect(near(wide, 0.06), "wide strip shrinks under the fraction")
+    expect(near(5000 * wide, 300), "wide strip fits the bar")
+
+    let narrow = barScale(total: 800, displayWidth: 1000, barWidth: 300, displayFraction: 0.3)
+    expect(near(narrow, 0.09), "narrow strip keeps the fraction")
+
+    expect(barScale(total: 0, displayWidth: 1000, barWidth: 300, displayFraction: 0.3) == 0, "no columns")
+    expect(
+      near(barScale(total: 1000, displayWidth: 0, barWidth: 300, displayFraction: 0.3), 0.3),
+      "unknown display width falls back to fit"
+    )
   }
 
   static func near(_ got: Double, _ want: Double) -> Bool {

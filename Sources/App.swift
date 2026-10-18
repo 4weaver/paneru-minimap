@@ -18,6 +18,7 @@ struct BarConfig {
   var cellHeight: CGFloat = 6
   var unfocusedShade: CGFloat = 0.72
   var unfocusedWash: CGFloat = 0.18
+  var displayFraction: CGFloat = 0.3
   var filter: String = "minimap"
   var shape: String = "square"
   var sharing: String = "readOnly"
@@ -43,6 +44,7 @@ func loadPreviewConfig() -> BarConfig {
     if let n = doubleValue(obj["cellHeight"]) { cfg.cellHeight = CGFloat(n) }
     if let n = doubleValue(obj["unfocusedShade"]) { cfg.unfocusedShade = CGFloat(n) }
     if let n = doubleValue(obj["unfocusedWash"]) { cfg.unfocusedWash = CGFloat(n) }
+    if let n = doubleValue(obj["displayFraction"]) { cfg.displayFraction = CGFloat(min(max(n, 0.05), 1)) }
     if let s = obj["filter"] as? String { cfg.filter = s }
     if let s = obj["shape"] as? String { cfg.shape = s }
     if let s = obj["sharing"] as? String { cfg.sharing = s }
@@ -73,7 +75,14 @@ final class BarView: NSView {
 
   func slots() -> [(index: Int, rect: CGRect, onScreen: Bool)] {
     let total = columns.reduce(0) { $0 + $1.width }
-    let scale = total > 0 ? bounds.width / CGFloat(total) : 0
+    let scale = CGFloat(
+      barScale(
+        total: Double(total),
+        displayWidth: display.width,
+        barWidth: Double(bounds.width),
+        displayFraction: Double(previewConfig.displayFraction)
+      )
+    )
     var x: CGFloat = 0
     return columns.map { column in
       let width = max(CGFloat(column.width) * scale, 1)

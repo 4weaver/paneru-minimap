@@ -2,7 +2,7 @@
 
 A Darwin menu-bar-less panel for the running paneru strip. It is a paneru client. It does not capture the desktop as a second status bar.
 
-One block per tiled column. The whole window is scaled into that block and drawn as 9×6 pt minimap cells, so a taller window shows more, compressed, instead of a top crop. Unfocused columns are dimmed. A white stroke marks the part of the strip that lies on the current display. A click runs `paneru send-cmd window focus <column>`.
+One block per tiled column. The whole window is scaled into that block and drawn as 9×6 pt minimap cells, so a taller window shows more, compressed, instead of a top crop. The strip is scaled so the current display takes `displayFraction` of the bar width, which leaves the neighbouring columns visible; a strip wider than that shrinks further, until every column fits. Unfocused columns are dimmed. A white stroke marks the part of the strip that lies on the current display. A click runs `paneru send-cmd window focus <column>`.
 
 ![paneru-minimap on the bottom of the display](docs/screenshot.png)
 
@@ -69,6 +69,7 @@ That bundle has no `Info.plist`. Add one if macOS does not show the app in the S
 | `cellHeight` | 6 | minimap cell height, pt |
 | `unfocusedShade` | 0.72 | dim on unfocused columns |
 | `unfocusedWash` | 0.18 | dark wash on unfocused columns |
+| `displayFraction` | 0.3 | share of the bar width the current display takes, so the bar shows the strip around it; the columns win when they need the room |
 | `filter` | `minimap` | `none` or `minimap` |
 | `shape` | `square` | `square` or `dot`, used by `minimap` |
 | `sharing` | `readOnly` | `readOnly` shows the bar in screenshots and screen share; `none` hides it |
