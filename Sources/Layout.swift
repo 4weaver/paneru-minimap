@@ -6,6 +6,7 @@ struct WinFrame: Equatable {
 
 struct Win: Equatable {
   var frame: WinFrame
+  var windowID: Int
   var bundleID: String
   var appName: String
   var focused: Bool
@@ -14,6 +15,7 @@ struct Win: Equatable {
 
 struct StripColumn: Equatable {
   var index: Int
+  var windowID: Int
   var x: Int
   var width: Int
   var bundleID: String
@@ -27,21 +29,21 @@ struct DisplaySpan: Equatable {
 }
 
 func stripColumns(_ windows: [Win]) -> [StripColumn] {
-  let tiled = windows.filter { !$0.floating }
-  let grouped = Dictionary(grouping: tiled, by: { $0.frame.x })
-  return grouped.keys.sorted().enumerated().map { offset, x in
-    let members = grouped[x] ?? []
-    let chosen = members.first(where: { $0.focused })
-      ?? members.sorted(by: { $0.appName < $1.appName }).first
-    return StripColumn(
+  windows.filter { !$0.floating }.enumerated().map { offset, window in
+    StripColumn(
       index: offset + 1,
-      x: x,
-      width: members.map(\.frame.width).max() ?? 0,
-      bundleID: chosen?.bundleID ?? "",
-      appName: chosen?.appName ?? "",
-      focused: members.contains(where: { $0.focused })
+      windowID: window.windowID,
+      x: window.frame.x,
+      width: window.frame.width,
+      bundleID: window.bundleID,
+      appName: window.appName,
+      focused: window.focused
     )
   }
+}
+
+func onDisplay(_ column: StripColumn, display: DisplaySpan) -> Bool {
+  Double(column.x) < display.minX + display.width && Double(column.x + column.width) > display.minX
 }
 
 func barScale(total: Double, displayWidth: Double, barWidth: Double, displayFraction: Double) -> Double {

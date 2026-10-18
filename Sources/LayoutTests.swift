@@ -6,6 +6,7 @@ struct LayoutTests {
     let windows = [
       Win(
         frame: WinFrame(x: -500, y: 0, width: 400, height: 100),
+        windowID: 1,
         bundleID: "left",
         appName: "Left",
         focused: false,
@@ -13,6 +14,7 @@ struct LayoutTests {
       ),
       Win(
         frame: WinFrame(x: 100, y: 0, width: 400, height: 100),
+        windowID: 2,
         bundleID: "focused",
         appName: "Focused",
         focused: true,
@@ -20,6 +22,7 @@ struct LayoutTests {
       ),
       Win(
         frame: WinFrame(x: 100, y: 0, width: 200, height: 100),
+        windowID: 3,
         bundleID: "other",
         appName: "Other",
         focused: false,
@@ -27,6 +30,7 @@ struct LayoutTests {
       ),
       Win(
         frame: WinFrame(x: 1200, y: 0, width: 400, height: 100),
+        windowID: 4,
         bundleID: "right",
         appName: "Right",
         focused: false,
@@ -34,6 +38,7 @@ struct LayoutTests {
       ),
       Win(
         frame: WinFrame(x: 0, y: 0, width: 50, height: 50),
+        windowID: 5,
         bundleID: "float",
         appName: "Float",
         focused: false,
@@ -41,13 +46,76 @@ struct LayoutTests {
       ),
     ]
     let columns = stripColumns(windows)
-    expect(columns.count == 3, "three columns")
-    expect(columns.map(\.index) == [1, 2, 3], "indices 1, 2, 3")
-    expect(columns[1].focused, "column 2 focused")
-    expect(columns[1].width == 400, "column 2 width 400")
-    expect(columns[1].appName == "Focused", "column 2 app name Focused")
+    expect(columns.count == 4, "four columns")
+    expect(columns.map(\.index) == [1, 2, 3, 4], "indices 1, 2, 3, 4")
+    expect(columns.map(\.appName) == ["Left", "Focused", "Other", "Right"], "columns keep paneru order")
+    expect(columns.map(\.windowID) == [1, 2, 3, 4], "one column per tiled window")
+    expect(columns.map(\.focused) == [false, true, false, false], "focus stays on its own window")
+    expect(columns[1].width == 400, "the focused window's own width")
+    expect(columns[2].width == 200, "an equal position does not widen the other column")
+    expect(Set(columns.map(\.windowID)) == Set([1, 2, 3, 4]), "prune keeps every tiled window")
 
     let display = DisplaySpan(minX: 0, width: 1000)
+    expect(
+      !onDisplay(
+        StripColumn(
+          index: 4,
+          windowID: 4,
+          x: 1200,
+          width: 400,
+          bundleID: "right",
+          appName: "Right",
+          focused: false
+        ),
+        display: display
+      ),
+      "off-display column is not on the display"
+    )
+    expect(
+      onDisplay(
+        StripColumn(
+          index: 3,
+          windowID: 3,
+          x: 900,
+          width: 400,
+          bundleID: "right",
+          appName: "Right",
+          focused: false
+        ),
+        display: display
+      ),
+      "column straddling the right edge is on the display"
+    )
+    let shared = stripColumns([
+      Win(
+        frame: WinFrame(x: 500, y: 0, width: 120, height: 100),
+        windowID: 10,
+        bundleID: "zeta",
+        appName: "Zeta",
+        focused: true,
+        floating: false
+      ),
+      Win(
+        frame: WinFrame(x: 0, y: 0, width: 100, height: 100),
+        windowID: 11,
+        bundleID: "alpha",
+        appName: "Alpha",
+        focused: false,
+        floating: false
+      ),
+      Win(
+        frame: WinFrame(x: 0, y: 0, width: 90, height: 100),
+        windowID: 12,
+        bundleID: "beta",
+        appName: "Beta",
+        focused: false,
+        floating: false
+      ),
+    ])
+    expect(shared.count == 3, "a parked position does not swallow its windows")
+    expect(shared.map(\.windowID) == [10, 11, 12], "paneru order wins over position order")
+    expect(shared.map(\.focused) == [true, false, false], "focus stays on its own window")
+
     let scale = barScale(
       total: 3000,
       displayWidth: display.width,

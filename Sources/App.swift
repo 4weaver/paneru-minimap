@@ -69,11 +69,11 @@ func doubleValue(_ value: Any?) -> Double? {
 final class BarView: NSView {
   var columns: [StripColumn] = []
   var display = DisplaySpan(minX: 0, width: 1)
-  var shots: [Int: CGImage] = [:]
+  var shotsByWindow: [Int: CGImage] = [:]
 
   override var isFlipped: Bool { true }
 
-  func slots() -> [(index: Int, rect: CGRect, onScreen: Bool)] {
+  func slots() -> [(index: Int, rect: CGRect)] {
     let total = columns.reduce(0) { $0 + $1.width }
     let scale = CGFloat(
       barScale(
@@ -86,12 +86,9 @@ final class BarView: NSView {
     var x: CGFloat = 0
     return columns.map { column in
       let width = max(CGFloat(column.width) * scale, 1)
-      let onScreen = Double(column.x) < display.minX + display.width
-        && Double(column.x + column.width) > display.minX
       let slot = (
         index: column.index,
-        rect: CGRect(x: x, y: 0, width: width, height: bounds.height),
-        onScreen: onScreen
+        rect: CGRect(x: x, y: 0, width: width, height: bounds.height)
       )
       x += width
       return slot
@@ -105,10 +102,10 @@ final class BarView: NSView {
     let placed = slots()
     for slot in placed {
       let rect = slot.rect
-      let focused = columns.first { $0.index == slot.index }?.focused == true
-      if let shot = shots[slot.index], shot.width > 1, shot.height > 1 {
+      guard let column = columns.first(where: { $0.index == slot.index }) else { continue }
+      if let shot = shotsByWindow[column.windowID], shot.width > 1, shot.height > 1 {
         if previewConfig.filter == "minimap" {
-          drawMinimapBlocks(shot, in: rect, dimmed: !focused)
+          drawMinimapBlocks(shot, in: rect, dimmed: !column.focused)
         } else if let ctx = NSGraphicsContext.current?.cgContext {
           ctx.saveGState()
           ctx.clip(to: rect)
@@ -118,11 +115,11 @@ final class BarView: NSView {
           ctx.draw(shot, in: CGRect(x: 0, y: 0, width: shot.width, height: shot.height))
           ctx.restoreGState()
         }
-        if !focused {
+        if !column.focused {
           NSColor.black.withAlphaComponent(previewConfig.unfocusedWash).setFill()
           rect.fill()
         }
-      } else if let column = columns.first(where: { $0.index == slot.index }) {
+      } else {
         let bucket = column.bundleID.utf8.reduce(0) { $0 + Int($1) } % palette.count
         let color = palette[bucket]
         NSColor(calibratedRed: color.0, green: color.1, blue: color.2, alpha: 1).setFill()
@@ -137,7 +134,7 @@ final class BarView: NSView {
     }
   }
 
-  func displayFrame(_ placed: [(index: Int, rect: CGRect, onScreen: Bool)]) -> CGRect? {
+  func displayFrame(_ placed: [(index: Int, rect: CGRect)]) -> CGRect? {
     let d0 = display.minX
     let d1 = display.minX + display.width
     var segments: [CGRect] = []
@@ -332,8 +329,8 @@ final class App: NSObject, NSApplicationDelegate {
     let gen = captureGen
     bar.columns = parsed.columns
     bar.display = parsed.display
-    let live = Set(parsed.columns.map(\.index))
-    bar.shots = bar.shots.filter { live.contains($0.key) }
+    let live = Set(parsed.columns.map(\.windowID))
+    bar.shotsByWindow = bar.shotsByWindow.filter { live.contains($0.key) }
     place(on: screen(for: parsed.displayID))
     bar.needsDisplay = true
     let requests = parsed.shots
@@ -341,11 +338,11 @@ final class App: NSObject, NSApplicationDelegate {
       let shots = captureShots(requests)
       DispatchQueue.main.async {
         guard let self, self.captureGen == gen else { return }
-        var merged = self.bar.shots
+        var merged = self.bar.shotsByWindow
         for (key, image) in shots {
           merged[key] = image
         }
-        self.bar.shots = merged
+        self.bar.shotsByWindow = merged
         self.bar.needsDisplay = true
       }
     }
@@ -362,9 +359,7 @@ struct ParsedState {
 
 struct ShotRequest {
   var id: CGWindowID
-  var x: Int
-  var focused: Bool
-  var area: Int
+  var onScreen: Bool
 }
 
 func parseState(_ data: Data) -> ParsedState? {
@@ -379,8 +374,8 @@ func parseState(_ data: Data) -> ParsedState? {
     intValue($0["native_workspace_id"]) == native && intValue($0["number"]) == number
   }
   let rawWindows = match?["windows"] as? [[String: Any]] ?? []
+  let display = displaySpan(active)
   var windows: [Win] = []
-  var shots: [ShotRequest] = []
   for raw in rawWindows {
     guard let frame = raw["frame"] as? [String: Any],
       let x = intValue(frame["x"]),
@@ -388,27 +383,27 @@ func parseState(_ data: Data) -> ParsedState? {
       let width = intValue(frame["width"]),
       let height = intValue(frame["height"])
     else { continue }
-    let floating = raw["floating"] as? Bool ?? false
-    let focused = raw["focused"] as? Bool ?? false
     windows.append(
       Win(
         frame: WinFrame(x: x, y: y, width: width, height: height),
+        windowID: intValue(raw["window_id"]) ?? -1,
         bundleID: raw["bundle_id"] as? String ?? "",
         appName: raw["app_name"] as? String ?? "",
-        focused: focused,
-        floating: floating
+        focused: raw["focused"] as? Bool ?? false,
+        floating: raw["floating"] as? Bool ?? false
       )
     )
-    if !floating, let id = intValue(raw["window_id"]), id >= 0 {
-      shots.append(ShotRequest(id: CGWindowID(id), x: x, focused: focused, area: width * height))
-    }
   }
+  let columns = stripColumns(windows)
   return ParsedState(
-    columns: stripColumns(windows),
-    display: displaySpan(active),
+    columns: columns,
+    display: display,
     displayID: displayID(active),
     windows: windows,
-    shots: shots
+    shots: columns.compactMap { column in
+      guard column.windowID >= 0 else { return nil }
+      return ShotRequest(id: CGWindowID(column.windowID), onScreen: onDisplay(column, display: display))
+    }
   )
 }
 
@@ -443,16 +438,35 @@ func intValue(_ value: Any?) -> Int? {
 }
 
 func captureShots(_ requests: [ShotRequest]) -> [Int: CGImage] {
-  let grouped = Dictionary(grouping: requests, by: \.x)
   var shots: [Int: CGImage] = [:]
-  for (offset, x) in grouped.keys.sorted().enumerated() {
-    let members = grouped[x] ?? []
-    let chosen = members.first(where: \.focused) ?? members.max(by: { $0.area < $1.area })
-    guard let chosen else { continue }
-    guard let image = captureWindowImage(chosen.id), image.width > 1, image.height > 1 else { continue }
-    shots[offset + 1] = image
+  for request in requests {
+    guard request.onScreen else { continue }
+    guard let image = captureWindowImage(request.id), image.width > 1, image.height > 1,
+      !isBlankImage(image)
+    else { continue }
+    shots[Int(request.id)] = image
   }
   return shots
+}
+
+func isBlankImage(_ image: CGImage) -> Bool {
+  let side = 8
+  var pixels = [UInt8](repeating: 0, count: side * side * 4)
+  let ok = pixels.withUnsafeMutableBytes { raw -> Bool in
+    guard let ctx = CGContext(
+      data: raw.baseAddress,
+      width: side,
+      height: side,
+      bitsPerComponent: 8,
+      bytesPerRow: side * 4,
+      space: CGColorSpaceCreateDeviceRGB(),
+      bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+    ) else { return false }
+    ctx.draw(image, in: CGRect(x: 0, y: 0, width: side, height: side))
+    return true
+  }
+  guard ok else { return true }
+  return stride(from: 3, to: pixels.count, by: 4).allSatisfy { pixels[$0] == 0 }
 }
 
 func captureWindowImage(_ id: CGWindowID) -> CGImage? {
