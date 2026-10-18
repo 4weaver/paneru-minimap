@@ -2,7 +2,7 @@
 
 A Darwin menu-bar-less panel for the running paneru strip. It is a paneru client. It does not capture the desktop as a second status bar.
 
-One block per tiled column. The block is a top slice of that window, drawn as 9×6 pt minimap cells. Unfocused columns are dimmed. A white stroke marks the part of the strip that lies on the current display. A click runs `paneru send-cmd window focus <column>`.
+One block per tiled column. The whole window is scaled into that block and drawn as 9×6 pt minimap cells, so a taller window shows more, compressed, instead of a top crop. Unfocused columns are dimmed. A white stroke marks the part of the strip that lies on the current display. A click runs `paneru send-cmd window focus <column>`.
 
 ![paneru-minimap on the bottom of the display](docs/screenshot.png)
 

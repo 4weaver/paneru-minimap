@@ -98,16 +98,15 @@ final class BarView: NSView {
       let rect = slot.rect
       let focused = columns.first { $0.index == slot.index }?.focused == true
       if let shot = shots[slot.index], shot.width > 1, shot.height > 1 {
-        let slice = contentSlice(shot, slotAspect: rect.width / max(rect.height, 1))
         if previewConfig.filter == "minimap" {
-          drawMinimapBlocks(slice, in: rect, dimmed: !focused)
+          drawMinimapBlocks(shot, in: rect, dimmed: !focused)
         } else if let ctx = NSGraphicsContext.current?.cgContext {
           ctx.saveGState()
           ctx.clip(to: rect)
           ctx.translateBy(x: rect.minX, y: rect.maxY)
-          ctx.scaleBy(x: rect.width / CGFloat(slice.width), y: -rect.height / CGFloat(slice.height))
+          ctx.scaleBy(x: rect.width / CGFloat(shot.width), y: -rect.height / CGFloat(shot.height))
           ctx.interpolationQuality = .high
-          ctx.draw(slice, in: CGRect(x: 0, y: 0, width: slice.width, height: slice.height))
+          ctx.draw(shot, in: CGRect(x: 0, y: 0, width: shot.width, height: shot.height))
           ctx.restoreGState()
         }
         if !focused {
@@ -503,13 +502,6 @@ func drawMinimapBlocks(_ image: CGImage, in rect: CGRect, dimmed: Bool) {
   }
 }
 
-func contentSlice(_ image: CGImage, slotAspect: CGFloat) -> CGImage {
-  let aspect = max(slotAspect, 0.2)
-  let cropH = min(image.height, max(1, Int((CGFloat(image.width) / aspect).rounded())))
-  if cropH >= image.height { return image }
-  let y = 0
-  return image.cropping(to: CGRect(x: 0, y: y, width: image.width, height: cropH)) ?? image
-}
 
 func posterize(_ image: CGImage, levels: Int) -> CGImage {
   let steps = max(levels, 2)
