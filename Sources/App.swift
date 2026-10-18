@@ -20,6 +20,7 @@ struct BarConfig {
   var unfocusedWash: CGFloat = 0.18
   var filter: String = "minimap"
   var shape: String = "square"
+  var sharing: String = "readOnly"
 }
 
 var previewConfig = BarConfig()
@@ -44,6 +45,7 @@ func loadPreviewConfig() -> BarConfig {
     if let n = doubleValue(obj["unfocusedWash"]) { cfg.unfocusedWash = CGFloat(n) }
     if let s = obj["filter"] as? String { cfg.filter = s }
     if let s = obj["shape"] as? String { cfg.shape = s }
+    if let s = obj["sharing"] as? String { cfg.sharing = s }
     }
   return cfg
 }
@@ -186,7 +188,7 @@ final class App: NSObject, NSApplicationDelegate {
     panel.isFloatingPanel = true
     panel.level = .floating
     panel.hidesOnDeactivate = false
-    panel.sharingType = .none
+    panel.sharingType = previewConfig.sharing == "none" ? .none : .readOnly
     panel.isOpaque = false
     panel.backgroundColor = .clear
     panel.hasShadow = false

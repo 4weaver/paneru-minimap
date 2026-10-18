@@ -6,5 +6,6 @@
   "unfocusedShade": 0.72,
   "unfocusedWash": 0.18,
   "filter": "minimap",
-  "shape": "square"
+  "shape": "square",
+  "sharing": "readOnly"
 }
