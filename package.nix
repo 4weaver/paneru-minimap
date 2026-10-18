@@ -12,7 +12,7 @@ let
     <plist version="1.0">
     <dict>
       <key>CFBundleIdentifier</key>
-      <string>com.github.inogai.paneru-minimap</string>
+      <string>com.inogai.paneru-minimap</string>
       <key>CFBundleExecutable</key>
       <string>paneru-minimap</string>
       <key>CFBundleName</key>
@@ -48,8 +48,10 @@ stdenv.mkDerivation {
       Sources/Layout.swift Sources/App.swift \
       -framework AppKit -framework CoreGraphics
     cp ${infoPlist} $out/Contents/Info.plist
+    mkdir -p $out/Contents/Resources
+    cp ${./config.json} $out/Contents/Resources/config.json
     CODESIGN_ALLOCATE="${darwin.cctools}/bin/${darwin.cctools.targetPrefix}codesign_allocate" \
-      ${darwin.sigtool}/bin/codesign -f -s - -i com.github.inogai.paneru-minimap \
+      ${darwin.sigtool}/bin/codesign -f -s - -i com.inogai.paneru-minimap \
       $out/Contents/MacOS/paneru-minimap
   '';
 

@@ -11,3 +11,6 @@ nix build .#paneru-minimap
 ```
 
 The output is an app bundle. The executable is `Contents/MacOS/paneru-minimap`. Screen Recording permission is required before the cells show window content.
+
+Settings are `config.json` in the bundle, then `~/.config/paneru-minimap/config.json` if that file exists. Keys: `barHeight`, `screenInset`, `cellWidth`, `cellHeight`, `unfocusedShade`, `unfocusedWash`.
+

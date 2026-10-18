@@ -11,7 +11,52 @@ private let palette: [(CGFloat, CGFloat, CGFloat)] = [
   (0.45, 0.70, 0.72),
 ]
 
-private let barHeight: CGFloat = 64
+struct BarConfig {
+  var barHeight: CGFloat = 64
+  var screenInset: CGFloat = 8
+  var cellWidth: CGFloat = 9
+  var cellHeight: CGFloat = 6
+  var unfocusedShade: CGFloat = 0.72
+  var unfocusedWash: CGFloat = 0.18
+}
+
+var previewConfig = BarConfig()
+
+func loadPreviewConfig() -> BarConfig {
+  var cfg = BarConfig()
+  let home = FileManager.default.homeDirectoryForCurrentUser
+  let paths = [
+    Bundle.main.resourceURL?.appendingPathComponent("config.json"),
+    Bundle.main.bundleURL.appendingPathComponent("Contents/Resources/config.json"),
+    home.appendingPathComponent(".config/paneru-minimap/config.json"),
+  ]
+  for url in paths.compactMap({ $0 }) {
+    guard let data = try? Data(contentsOf: url),
+      let obj = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
+    else { continue }
+    if let n = doubleValue(obj["barHeight"]) { cfg.barHeight = CGFloat(n) }
+    if let n = doubleValue(obj["screenInset"]) { cfg.screenInset = CGFloat(n) }
+    if let n = doubleValue(obj["cellWidth"]) { cfg.cellWidth = CGFloat(n) }
+    if let n = doubleValue(obj["cellHeight"]) { cfg.cellHeight = CGFloat(n) }
+    if let n = doubleValue(obj["unfocusedShade"]) { cfg.unfocusedShade = CGFloat(n) }
+    if let n = doubleValue(obj["unfocusedWash"]) { cfg.unfocusedWash = CGFloat(n) }
+  }
+  return cfg
+}
+
+func doubleValue(_ value: Any?) -> Double? {
+  switch value {
+  case let number as Double:
+    return number
+  case let number as Int:
+    return Double(number)
+  case let number as NSNumber:
+    return number.doubleValue
+  default:
+    return nil
+  }
+}
+
 
 final class BarView: NSView {
   var columns: [StripColumn] = []
@@ -53,7 +98,7 @@ final class BarView: NSView {
           dimmed: !focused
         )
         if !focused {
-          NSColor.black.withAlphaComponent(0.18).setFill()
+          NSColor.black.withAlphaComponent(previewConfig.unfocusedWash).setFill()
           rect.fill()
         }
       } else if let column = columns.first(where: { $0.index == slot.index }) {
@@ -112,7 +157,7 @@ final class BarView: NSView {
 
 final class App: NSObject, NSApplicationDelegate {
   let panel = NSPanel(
-    contentRect: NSRect(x: 0, y: 0, width: 320, height: barHeight),
+    contentRect: NSRect(x: 0, y: 0, width: 320, height: previewConfig.barHeight),
     styleMask: [.borderless, .nonactivatingPanel],
     backing: .buffered,
     defer: false
@@ -148,7 +193,7 @@ final class App: NSObject, NSApplicationDelegate {
   func place(on screen: NSScreen?) {
     guard let screen else { return }
     let frame = screen.frame
-    let target = NSRect(x: frame.minX + 8, y: frame.minY + 8, width: frame.width - 16, height: barHeight)
+    let target = NSRect(x: frame.minX + previewConfig.screenInset, y: frame.minY + previewConfig.screenInset, width: frame.width - previewConfig.screenInset * 2, height: previewConfig.barHeight)
     let current = panel.frame
     if abs(current.minX - target.minX) < 1, abs(current.minY - target.minY) < 1,
       abs(current.width - target.width) < 1
@@ -395,10 +440,8 @@ func captureShots(_ requests: [ShotRequest]) -> [Int: CGImage] {
 }
 
 func drawMinimapBlocks(_ image: CGImage, in rect: CGRect, dimmed: Bool) {
-  let cellW: CGFloat = 9
-  let cellH: CGFloat = 6
-  let cols = max(1, Int(rect.width / cellW))
-  let rows = max(1, Int(rect.height / cellH))
+  let cols = max(1, Int(rect.width / previewConfig.cellWidth))
+  let rows = max(1, Int(rect.height / previewConfig.cellHeight))
   var pixels = [UInt8](repeating: 0, count: cols * rows * 4)
   let cs = CGColorSpaceCreateDeviceRGB()
   let ok = pixels.withUnsafeMutableBytes { raw -> Bool in
@@ -418,7 +461,7 @@ func drawMinimapBlocks(_ image: CGImage, in rect: CGRect, dimmed: Bool) {
   guard ok else { return }
   let cw = rect.width / CGFloat(cols)
   let ch = rect.height / CGFloat(rows)
-  let shade: CGFloat = dimmed ? 0.72 : 1
+  let shade: CGFloat = dimmed ? previewConfig.unfocusedShade : 1
   for y in 0..<rows {
     for x in 0..<cols {
       let i = ((rows - 1 - y) * cols + x) * 4
@@ -538,6 +581,7 @@ func busiestBandY(_ image: CGImage, cropH: Int) -> Int {
 @main
 enum Main {
   static func main() {
+    previewConfig = loadPreviewConfig()
     let app = NSApplication.shared
     let delegate = App()
     app.setActivationPolicy(.accessory)

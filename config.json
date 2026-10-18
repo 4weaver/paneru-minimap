@@ -1,0 +1,8 @@
+{
+  "barHeight": 64,
+  "screenInset": 8,
+  "cellWidth": 9,
+  "cellHeight": 6,
+  "unfocusedShade": 0.72,
+  "unfocusedWash": 0.18
+}
