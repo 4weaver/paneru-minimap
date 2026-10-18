@@ -17,7 +17,7 @@ nix build github:4weaver/paneru-minimap
 
 The output is an app bundle. The executable is `Contents/MacOS/paneru-minimap`. It links only system frameworks and `/usr/lib/swift`, so the bundle does not need the Nix store at runtime.
 
-Home Manager: import `homeManagerModules.default`, then set `programs.paneru-minimap.enable`. The module does nothing unless the host is Darwin. It starts a launchd agent at login and restarts it if it dies.
+Home Manager: import `homeManagerModules.default`, then set `services.paneru-minimap.enable`. This is a launchd agent, so it lives under `services`, not `programs`. The module does nothing unless the host is Darwin. It starts at login and restarts if it dies.
 
 ```nix
 {
@@ -28,7 +28,7 @@ Home Manager: import `homeManagerModules.default`, then set `programs.paneru-min
 Add `paneru-minimap.homeManagerModules.default` to `imports`, then:
 
 ```nix
-programs.paneru-minimap.enable = true;
+services.paneru-minimap.enable = true;
 ```
 
 ## Without Nix
