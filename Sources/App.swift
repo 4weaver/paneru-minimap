@@ -480,7 +480,7 @@ func drawMinimapBlocks(_ image: CGImage, in rect: CGRect, dimmed: Bool) {
   let shade: CGFloat = dimmed ? previewConfig.unfocusedShade : 1
   for y in 0..<rows {
     for x in 0..<cols {
-      let i = ((rows - 1 - y) * cols + x) * 4
+      let i = (y * cols + x) * 4
       let r0 = CGFloat(pixels[i]) / 255
       let g0 = CGFloat(pixels[i + 1]) / 255
       let b0 = CGFloat(pixels[i + 2]) / 255
